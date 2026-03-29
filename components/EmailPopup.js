@@ -1,83 +1,67 @@
-// pages/api/subscribe.js
-// Handles quiz email capture and adds contact to Brevo
 'use client';
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+
+import { useState, useEffect } from 'react';
+import SupplementQuiz from './SupplementQuiz';
+
+export default function EmailPopup() {
+  const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem('quiz_dismissed')) return;
+    const timer = setTimeout(() => setOpen(true), 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  function handleClose() {
+    setOpen(false);
+    setDismissed(true);
+    sessionStorage.setItem('quiz_dismissed', '1');
   }
 
-  const { email, answers, recommendations } = req.body;
+  if (!open || dismissed) return null;
 
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ error: 'Invalid email' });
-  }
+  return (
+    <>
+      <div
+        onClick={handleClose}
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.45)',
+          zIndex: 999,
+        }}
+      />
+      <div style={{
+        position: 'fixed', top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 1000, background: '#fff',
+        borderRadius: '16px', width: '90%', maxWidth: '600px',
+        maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+      }}>
+        <button
+          onClick={handleClose}
+          style={{
+            position: 'absolute', top: '12px', right: '14px',
+            background: 'none', border: 'none',
+            fontSize: '22px', cursor: 'pointer',
+            color: '#6b7280', lineHeight: 1, zIndex: 1,
+          }}
+          aria-label="Close"
+        >×</button>
 
-  const BREVO_API_KEY = process.env.BREVO_API_KEY;
+        <div style={{
+          background: '#E1F5EE', borderRadius: '16px 16px 0 0',
+          padding: '12px 16px', textAlign: 'center',
+          fontSize: '13px', color: '#085041', fontWeight: 500,
+        }}>
+          Free personalized recommendation — takes 60 seconds
+        </div>
 
-  if (!BREVO_API_KEY) {
-    console.error('BREVO_API_KEY not set in environment variables');
-    return res.status(500).json({ error: 'Server configuration error' });
-  }
+        <SupplementQuiz />
+      </div>
+    </>
+  );
+}
 
-  try {
-    // Add contact to Brevo with custom attributes
-    const brevoRes = await fetch('https://api.brevo.com/v3/contacts', {
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'api-key': BREVO_API_KEY,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        email,
-        updateEnabled: true, // update if contact already exists
-        listIds: [2], // change to your Brevo list ID
-        attributes: {
-          QUIZ_GOAL: answers?.goal || '',
-          QUIZ_AGE: answers?.age || '',
-          QUIZ_DIET: answers?.diet || '',
-          QUIZ_CONDITION: answers?.condition || '',
-          QUIZ_MEDS: answers?.meds || '',
-          QUIZ_RECS: (recommendations || []).join(', '),
-          SIGNUP_SOURCE: 'supplement-quiz',
-        },
-      }),
-    });
-
-    if (!brevoRes.ok) {
-      const errBody = await brevoRes.json();
-      // Code 400 + message about duplicate is fine — contact already exists
-      if (brevoRes.status === 400 && errBody.code === 'duplicate_parameter') {
-        return res.status(200).json({ success: true });
-      }
-      console.error('Brevo error:', errBody);
-      return res.status(500).json({ error: 'Failed to subscribe' });
-    }
-
-    // Optional: trigger a welcome/lead-magnet transactional email
-    // Uncomment and set your templateId from Brevo dashboard
-    /*
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'api-key': BREVO_API_KEY,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        to: [{ email }],
-        templateId: 1, // your Brevo template ID
-        params: {
-          RECOMMENDATIONS: (recommendations || []).join(', '),
-          GOAL: answers?.goal,
-        },
-      }),
-    });
-    */
-
-    return res.status(200).json({ success: true });
-  } catch (err) {
-    console.error('Subscribe handler error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
 }
