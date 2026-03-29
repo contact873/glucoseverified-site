@@ -1,0 +1,96 @@
+import { useState, useEffect } from 'react';
+import SupplementQuiz from './SupplementQuiz';
+
+export default function EmailPopup() {
+  const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    // Don't show if already dismissed this session
+    if (sessionStorage.getItem('quiz_dismissed')) return;
+
+    const timer = setTimeout(() => {
+      setOpen(true);
+    }, 8000); // 8 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  function handleClose() {
+    setOpen(false);
+    setDismissed(true);
+    sessionStorage.setItem('quiz_dismissed', '1');
+  }
+
+  if (!open || dismissed) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={handleClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.45)',
+          zIndex: 999,
+        }}
+      />
+
+      {/* Modal */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1000,
+          background: '#fff',
+          borderRadius: '16px',
+          width: '90%',
+          maxWidth: '600px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+        }}
+      >
+        {/* Close button */}
+        <button
+          onClick={handleClose}
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '14px',
+            background: 'none',
+            border: 'none',
+            fontSize: '22px',
+            cursor: 'pointer',
+            color: '#6b7280',
+            lineHeight: 1,
+            zIndex: 1,
+          }}
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+        {/* Eyebrow */}
+        <div
+          style={{
+            background: '#E1F5EE',
+            borderRadius: '16px 16px 0 0',
+            padding: '12px 16px',
+            textAlign: 'center',
+            fontSize: '13px',
+            color: '#085041',
+            fontWeight: 500,
+          }}
+        >
+          Free personalized recommendation — takes 60 seconds
+        </div>
+
+        <SupplementQuiz />
+      </div>
+    </>
+  );
+}

@@ -1,4 +1,3 @@
-import EmailPopup from '../components/EmailPopup';
 import { useState } from 'react';
 import styles from './SupplementQuiz.module.css';
 
