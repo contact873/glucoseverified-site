@@ -1,6 +1,6 @@
 // pages/api/subscribe.js
 // Handles quiz email capture and adds contact to Brevo
-
+'use client';
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
